@@ -179,7 +179,7 @@ def my_downloads():
     email = ""
     if request.method == "POST":
         email = request.form.get("email", "").strip()
-        orders_ref = db.collection('orders').where('buyer_email', '==', email).order_by('created_at', direction=firestore.Query.DESCENDING).stream()
+        orders_ref = db.collection('orders').where('buyer_email', '==', email).stream()
         for doc in orders_ref:
             o = doc.to_dict()
             o['order_id'] = doc.id

@@ -4,12 +4,16 @@
     <h1>Checkout</h1>
     <p class="subtitle">Buying: <strong>{{ book.title }}</strong> – Rs. {{ "%.0f"|format(book.price) }}</p>
 
-    <form method="POST" class="checkout-form">
+    <form method="POST" class="checkout-form" onsubmit="return validateForm()">
         <h3><i class="fa-solid fa-user"></i> Your Details</h3>
         <div class="form-grid">
             <input type="text" name="name" placeholder="Full Name" required>
             <input type="email" name="email" placeholder="Email" required>
-            <input type="tel" name="phone" placeholder="Phone (03XX-XXXXXXX)" required>
+            
+            <!-- Mobile Number Validation -->
+            <input type="tel" name="phone" id="phoneInput" placeholder="Phone (03XXXXXXXXX)" 
+                   pattern="03[0-9]{9}" maxlength="11" minlength="11"
+                   title="Please enter a valid 11-digit mobile number starting with 03" required>
         </div>
 
         <h3><i class="fa-solid fa-wallet"></i> Payment Method</h3>
@@ -42,8 +46,17 @@
             <div id="paymentInfo" class="payment-info">
                 <p>Select a payment method above to see account details.</p>
             </div>
-            <input type="text" name="sender_number" placeholder="Your Sender Number (from which you paid)" class="full-width">
-            <input type="text" name="transaction_id" placeholder="Transaction ID (TID) *" class="full-width" required>
+            
+            <!-- Sender Number Validation -->
+            <input type="tel" name="sender_number" id="senderInput" placeholder="Your Sender Number (03XXXXXXXXX)" 
+                   pattern="03[0-9]{9}" maxlength="11" minlength="11"
+                   title="Please enter a valid 11-digit mobile number starting with 03" class="full-width">
+            
+            <!-- Transaction ID Validation -->
+            <input type="text" name="transaction_id" id="tidInput" placeholder="Transaction ID (TID) *" 
+                   minlength="6" maxlength="25"
+                   title="Transaction ID must be at least 6 characters long" class="full-width" required>
+            
             <p class="note small"><i class="fa-brands fa-whatsapp"></i> After placing order, WhatsApp opens with all details — just press Send.</p>
         </div>
 
@@ -75,6 +88,33 @@ function togglePaymentFields(el) {
         <p>Account Title: <strong>${ACC_TITLE}</strong></p>
         <p>Transfer <strong>Rs. ${price}</strong>, then enter the Transaction ID below.</p>`;
     }
+}
+
+// Extra JS validation (just in case)
+function validateForm() {
+    const phone = document.getElementById('phoneInput').value;
+    const sender = document.getElementById('senderInput').value;
+    const tid = document.getElementById('tidInput').value;
+
+    // Phone format 03XXXXXXXXX
+    if (!/^03[0-9]{9}$/.test(phone)) {
+        alert("Mobile number must be 11 digits and start with 03 (e.g., 03001234567)");
+        return false;
+    }
+
+    // Sender format (if provided, must be 11 digits starting with 03)
+    if (sender && !/^03[0-9]{9}$/.test(sender)) {
+        alert("Sender number must be 11 digits and start with 03");
+        return false;
+    }
+
+    // TID minimum length
+    if (tid.length < 6) {
+        alert("Transaction ID (TID) must be at least 6 characters long.");
+        return false;
+    }
+
+    return true;
 }
 </script>
 {% endblock %}
