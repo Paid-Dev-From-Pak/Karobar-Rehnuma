@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="detail-section">
+    <div class="detail-card">
+        <div class="detail-cover">
+            {% if book.cover_image %}
+                <img src="{{ url_for('static', filename='images/' + book.cover_image) }}" alt="{{ book.title }}">
+            {% else %}
+                <div class="no-cover large"><i class="fa-solid fa-book"></i></div>
+            {% endif %}
+        </div>
+        <div class="detail-info">
+            <h1>{{ book.title }}</h1>
+            <p class="author"><i class="fa-solid fa-user-pen"></i> By {{ book.author }}</p>
+            <p class="desc">{{ book.description }}</p>
+            <div class="price-large">Rs. {{ "%.0f"|format(book.price) }}</div>
+            <a href="{{ url_for('checkout', book_id=book.id) }}" class="btn-primary">
+                <i class="fa-solid fa-credit-card"></i> Buy Now & Download
+            </a>
+            <p class="note"><i class="fa-solid fa-shield-halved"></i> Download link unlocks after payment verification.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

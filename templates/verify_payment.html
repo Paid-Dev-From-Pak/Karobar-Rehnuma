@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="verify-section">
+    <div class="verify-card">
+        <div class="verify-icon" id="statusIcon">
+            <i class="fa-solid fa-hourglass-half"></i>
+        </div>
+        <h1 id="statusTitle">Payment Verification Pending</h1>
+        <p class="subtitle">Order ID: <strong>{{ order.order_id }}</strong></p>
+
+        <div class="order-summary">
+            <p><strong>Book:</strong> {{ order.book_title or 'Deleted Book' }}</p>
+            <p><strong>Amount:</strong> Rs. {{ "%.0f"|format(order.amount) }}</p>
+            <p><strong>Method:</strong> {{ order.payment_method }}</p>
+            <p><strong>Transaction ID:</strong> {{ order.transaction_id or '-' }}</p>
+            <p><strong>Status:</strong> <span id="statusBadge" class="badge badge-{{ order.status }}">{{ order.status|upper }}</span></p>
+        </div>
+
+        <div id="downloadArea" class="hidden">
+            <p class="success-msg"><i class="fa-solid fa-check-circle"></i> Payment verified!</p>
+            {% if order.is_deleted %}
+                <p class="note" style="color:#dc2626;">This e-book has been removed. Contact us on WhatsApp: 0370-0157610</p>
+            {% else %}
+                <a href="{{ url_for('download', order_id=order.order_id) }}" class="btn-primary">
+                    <i class="fa-solid fa-download"></i> Download E-Book
+                </a>
+            {% endif %}
+        </div>
+
+        <div id="pendingArea">
+            {% set wa_msg = 'Assalam o Alaikum, I have paid for my order.\n\nOrder ID: ' ~ order.order_id ~ '\nBook: ' ~ (order.book_title or '') ~ '\nAmount: Rs. ' ~ order.amount|string ~ '\nPayment Method: ' ~ order.payment_method ~ '\nTransaction ID (TID): ' ~ (order.transaction_id or '') %}
+            <p class="note"><i class="fa-brands fa-whatsapp"></i> Send your Transaction ID on WhatsApp so we can verify faster.</p>
+            <a href="https://wa.me/{{ whatsapp }}?text={{ wa_msg | urlencode }}"
+               class="btn-primary" target="_blank" style="margin-top:1rem;">
+                <i class="fa-brands fa-whatsapp"></i> Send TID on WhatsApp
+            </a>
+            <p class="note small" style="margin-top:1rem;">
+                <i class="fa-solid fa-clock"></i> This page auto-refreshes every 4 seconds.
+                You can also check later from <a href="{{ url_for('my_downloads') }}">My Downloads</a>.
+            </p>
+        </div>
+    </div>
+</section>
+
+<script>
+const orderId = "{{ order.order_id }}";
+const currentStatus = "{{ order.status }}";
+const isDeleted = {{ 'true' if order.is_deleted else 'false' }};
+
+function applyVerified() {
+    document.getElementById('statusBadge').className = 'badge badge-verified';
+    document.getElementById('statusBadge').textContent = 'VERIFIED';
+    document.getElementById('pendingArea').classList.add('hidden');
+    document.getElementById('downloadArea').classList.remove('hidden');
+    document.getElementById('statusTitle').textContent = 'Payment Verified ✅';
+    document.getElementById('statusIcon').innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+    document.getElementById('statusIcon').classList.add('success');
+}
+
+function applyRejected() {
+    document.getElementById('statusBadge').className = 'badge badge-rejected';
+    document.getElementById('statusBadge').textContent = 'REJECTED';
+    document.getElementById('statusTitle').textContent = 'Payment Rejected ❌';
+    document.getElementById('statusIcon').innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
+    document.getElementById('pendingArea').classList.add('hidden');
+}
+
+if (currentStatus === 'verified') applyVerified();
+if (currentStatus === 'rejected') applyRejected();
+
+function checkStatus() {
+    fetch(`/check-status/${orderId}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'verified') applyVerified();
+            else if (data.status === 'rejected') applyRejected();
+        })
+        .catch(() => {});
+}
+
+if (currentStatus === 'pending') {
+    setInterval(checkStatus, 4000);
+    checkStatus();
+}
+</script>
+{% endblock %}

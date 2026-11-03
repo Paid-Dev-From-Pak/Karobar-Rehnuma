@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="checkout-section">
+    <h1>Checkout</h1>
+    <p class="subtitle">Buying: <strong>{{ book.title }}</strong> – Rs. {{ "%.0f"|format(book.price) }}</p>
+
+    <form method="POST" class="checkout-form">
+        <h3><i class="fa-solid fa-user"></i> Your Details</h3>
+        <div class="form-grid">
+            <input type="text" name="name" placeholder="Full Name" required>
+            <input type="email" name="email" placeholder="Email" required>
+            <input type="tel" name="phone" placeholder="Phone (03XX-XXXXXXX)" required>
+        </div>
+
+        <h3><i class="fa-solid fa-wallet"></i> Payment Method</h3>
+        <div class="payment-methods">
+            <label class="pm-card">
+                <input type="radio" name="payment_method" value="JazzCash" required onchange="togglePaymentFields(this)">
+                <div class="pm-content">
+                    <i class="fa-solid fa-mobile-screen-button"></i>
+                    <span>JazzCash</span>
+                </div>
+            </label>
+            <label class="pm-card">
+                <input type="radio" name="payment_method" value="EasyPaisa" onchange="togglePaymentFields(this)">
+                <div class="pm-content">
+                    <i class="fa-solid fa-mobile-screen-button"></i>
+                    <span>EasyPaisa</span>
+                </div>
+            </label>
+            <label class="pm-card">
+                <input type="radio" name="payment_method" value="Bank Transfer" onchange="togglePaymentFields(this)">
+                <div class="pm-content">
+                    <i class="fa-solid fa-building-columns"></i>
+                    <span>Bank Transfer</span>
+                </div>
+            </label>
+        </div>
+
+        <div id="paymentDetails" class="payment-details">
+            <h3><i class="fa-solid fa-circle-info"></i> Payment Details</h3>
+            <div id="paymentInfo" class="payment-info">
+                <p>Select a payment method above to see account details.</p>
+            </div>
+            <input type="text" name="sender_number" placeholder="Your Sender Number (from which you paid)" class="full-width">
+            <input type="text" name="transaction_id" placeholder="Transaction ID (TID) *" class="full-width" required>
+            <p class="note small"><i class="fa-brands fa-whatsapp"></i> After placing order, WhatsApp opens with all details — just press Send.</p>
+        </div>
+
+        <button type="submit" class="btn-primary full-width">
+            <i class="fa-brands fa-whatsapp"></i> Place Order & Notify via WhatsApp
+        </button>
+    </form>
+</section>
+
+<script>
+const ACC_TITLE = "{{ account_title }}";
+const ACC_NUMBER = "{{ account_number }}";
+
+function togglePaymentFields(el) {
+    const info = document.getElementById('paymentInfo');
+    const method = el.value;
+    const price = {{ book.price }};
+
+    if (method === 'JazzCash') {
+        info.innerHTML = `<p><strong>JazzCash Number:</strong> ${ACC_NUMBER}</p>
+        <p><strong>Account Title:</strong> ${ACC_TITLE}</p>
+        <p>Send <strong>Rs. ${price}</strong> to the above number, then enter the Transaction ID below.</p>`;
+    } else if (method === 'EasyPaisa') {
+        info.innerHTML = `<p><strong>EasyPaisa Number:</strong> ${ACC_NUMBER}</p>
+        <p><strong>Account Title:</strong> ${ACC_TITLE}</p>
+        <p>Send <strong>Rs. ${price}</strong> to the above number, then enter the Transaction ID below.</p>`;
+    } else if (method === 'Bank Transfer') {
+        info.innerHTML = `<p>For bank transfer, contact us on WhatsApp: <strong>${ACC_NUMBER}</strong></p>
+        <p>Account Title: <strong>${ACC_TITLE}</strong></p>
+        <p>Transfer <strong>Rs. ${price}</strong>, then enter the Transaction ID below.</p>`;
+    }
+}
+</script>
+{% endblock %}

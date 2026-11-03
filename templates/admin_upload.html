@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="auth-section">
+    <div class="auth-card wide">
+        <h1><i class="fa-solid fa-cloud-arrow-up"></i> Upload E-Book</h1>
+        <form method="POST" enctype="multipart/form-data" class="upload-form">
+            <input type="text" name="title" placeholder="Book Title" required>
+            <input type="text" name="author" placeholder="Author" required>
+            <textarea name="description" placeholder="Description" rows="4"></textarea>
+            <input type="number" step="0.01" name="price" placeholder="Price (PKR)" required>
+            <label>Cover Image (optional)
+                <input type="file" name="cover" accept="image/*">
+            </label>
+            <label>E-Book File (PDF/EPUB/MOBI) *
+                <input type="file" name="ebook" accept=".pdf,.epub,.mobi" required>
+            </label>
+            <button type="submit" class="btn-primary full-width">Upload</button>
+        </form>
+        <p class="note small"><a href="{{ url_for('admin_dashboard') }}">← Back to Dashboard</a></p>
+    </div>
+</section>
+{% endblock %}

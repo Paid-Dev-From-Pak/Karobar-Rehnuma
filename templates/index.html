@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+    <div class="hero-content">
+        <h1>Discover Your Next <span class="gradient-text">Favourite Book</span></h1>
+        <p>Thousands of e-books, instant download, easy Pakistani payments.</p>
+        <a href="#books" class="btn-primary">Browse Books</a>
+    </div>
+</section>
+
+<section id="books" class="books-section">
+    <h2 class="section-title">All E-Books</h2>
+    <div class="books-grid">
+        {% for book in books %}
+        <div class="book-card">
+            <div class="book-cover">
+                {% if book.cover_image %}
+                    <img src="{{ url_for('static', filename='images/' + book.cover_image) }}" alt="{{ book.title }}">
+                {% else %}
+                    <div class="no-cover"><i class="fa-solid fa-book"></i></div>
+                {% endif %}
+            </div>
+            <div class="book-info">
+                <h3>{{ book.title }}</h3>
+                <p class="author"><i class="fa-solid fa-user-pen"></i> {{ book.author }}</p>
+                <p class="desc">{{ book.description[:80] }}{% if book.description and book.description|length > 80 %}...{% endif %}</p>
+                <div class="book-footer">
+                    <span class="price">Rs. {{ "%.0f"|format(book.price) }}</span>
+                    <a href="{{ url_for('book_detail', book_id=book.id) }}" class="btn-view">View</a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p class="empty">No books available yet. Admin will upload soon.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="downloads-section">
+    <h1>My Downloads</h1>
+    <p class="subtitle">Enter your email to see all your orders and download links.</p>
+
+    <form method="POST" class="search-form">
+        <input type="email" name="email" placeholder="Your email" value="{{ email }}" required>
+        <button type="submit" class="btn-primary">Search</button>
+    </form>
+
+    {% if orders %}
+    <div class="orders-list">
+        {% for o in orders %}
+        <div class="order-card">
+            <div class="order-cover">
+                {% if o.cover_image and not o.is_deleted %}
+                    <img src="{{ url_for('static', filename='images/' + o.cover_image) }}" alt="">
+                {% else %}
+                    <div class="no-cover small"><i class="fa-solid fa-book"></i></div>
+                {% endif %}
+            </div>
+            <div class="order-info">
+                <h3>{{ o.book_title or 'Deleted Book' }}</h3>
+                <p>Order: {{ o.order_id }}</p>
+                <p>Amount: Rs. {{ "%.0f"|format(o.amount) }}</p>
+                <p>Status: <span class="badge badge-{{ o.status }}">{{ o.status|upper }}</span></p>
+                {% if o.is_deleted %}
+                    <p class="note small" style="color:#dc2626;">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        This e-book has been removed. Contact us on WhatsApp: {{ account_number }}
+                    </p>
+                {% endif %}
+            </div>
+            <div class="order-action">
+                {% if o.status == 'verified' and not o.is_deleted %}
+                    <a href="{{ url_for('download', order_id=o.order_id) }}" class="btn-primary">
+                        <i class="fa-solid fa-download"></i> Download
+                    </a>
+                {% elif o.status == 'verified' and o.is_deleted %}
+                    <span class="btn-disabled"><i class="fa-solid fa-ban"></i> Removed</span>
+                {% else %}
+                    <span class="btn-disabled"><i class="fa-solid fa-lock"></i> Locked</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% elif email %}
+        <p class="empty">No orders found for this email.</p>
+    {% endif %}
+</section>
+{% endblock %}

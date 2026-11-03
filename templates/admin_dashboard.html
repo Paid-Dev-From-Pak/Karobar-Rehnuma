@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="admin-section">
+    <div class="admin-header">
+        <h1>Admin Dashboard</h1>
+        <div>
+            <a href="{{ url_for('admin_upload') }}" class="btn-primary"><i class="fa-solid fa-plus"></i> Upload Book</a>
+            <a href="{{ url_for('admin_logout') }}" class="btn-secondary">Logout</a>
+        </div>
+    </div>
+
+    <h2 class="section-title">Orders</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Book</th>
+                    <th>Buyer</th>
+                    <th>Phone</th>
+                    <th>Method</th>
+                    <th>TID</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for o in orders %}
+                <tr>
+                    <td>{{ o.order_id }}</td>
+                    <td>{{ o.book_title or 'Deleted Book' }}{% if o.is_deleted %} <small style="color:#dc2626;">(removed)</small>{% endif %}</td>
+                    <td>{{ o.buyer_name }}<br><small>{{ o.buyer_email }}</small></td>
+                    <td>{{ o.buyer_phone }}</td>
+                    <td>{{ o.payment_method }}<br><small>From: {{ o.sender_number or '-' }}</small></td>
+                    <td><strong>{{ o.transaction_id or '-' }}</strong></td>
+                    <td>Rs. {{ "%.0f"|format(o.amount) }}</td>
+                    <td><span class="badge badge-{{ o.status }}">{{ o.status|upper }}</span></td>
+                    <td>
+                        {% if o.status == 'pending' %}
+                        <form method="POST" action="{{ url_for('admin_verify_order', order_id=o.order_id) }}" style="display:inline">
+                            <button name="action" value="approve" class="btn-success">Verify</button>
+                            <button name="action" value="reject" class="btn-danger">Reject</button>
+                        </form>
+                        {% else %}
+                        <a href="https://wa.me/92{{ o.buyer_phone | replace('-','') | replace(' ','') | replace('+92','') | replace('0','',1) }}?text={{ ('Hi ' ~ o.buyer_name ~ ', your order ' ~ o.order_id ~ ' for ' ~ (o.book_title or 'your book') ~ ' is ' ~ o.status) | urlencode }}"
+                           class="btn-secondary small-btn" target="_blank">
+                            <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" style="text-align:center;padding:2rem;color:#94a3b8;">No orders yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <h2 class="section-title">Active Books</h2>
+    <div class="books-admin-grid">
+        {% for b in books %}
+        <div class="admin-book-card">
+            <h4>{{ b.title }}</h4>
+            <p>By {{ b.author }}</p>
+            <p>Rs. {{ "%.0f"|format(b.price) }}</p>
+            <form method="POST" action="{{ url_for('admin_delete_book', book_id=b.id) }}" onsubmit="return confirm('Remove this book from store? Existing orders will stay safe.')">
+                <button class="btn-danger small-btn">Remove</button>
+            </form>
+        </div>
+        {% else %}
+        <p class="empty">No active books.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
