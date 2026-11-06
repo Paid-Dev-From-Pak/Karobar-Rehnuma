@@ -148,7 +148,7 @@ def check_status(order_id):
         return jsonify({"status": "not_found"}), 404
     return jsonify({"status": doc.to_dict().get('status')})
 
-# ---------- DOWNLOAD (LOCAL FILE) ----------
+# ---------- DOWNLOAD ----------
 @app.route("/download/<order_id>")
 def download(order_id):
     doc = db.collection('orders').document(order_id).get()
@@ -162,6 +162,7 @@ def download(order_id):
         return redirect(url_for("verify_payment", order_id=order_id))
 
     file_path = order.get('file_path')
+    
     if not file_path:
         flash(f"⚠️ File record missing. Contact admin: {ACCOUNT_NUMBER_DISPLAY}", "error")
         return redirect(url_for("my_downloads"))
@@ -171,10 +172,7 @@ def download(order_id):
         download_name = f"{order.get('book_title', 'Book')}.{file_ext}"
         return send_from_directory(UPLOAD_EBOOKS, file_path, as_attachment=True, download_name=download_name)
     except FileNotFoundError:
-        flash(f"⚠️ This e-book file has been removed from the server. Please contact admin on WhatsApp: {ACCOUNT_NUMBER_DISPLAY}", "error")
-        return redirect(url_for("my_downloads"))
-    except Exception as e:
-        flash(f"Error: {str(e)}", "error")
+        flash(f"⚠️ This e-book file has been removed from the server. Please contact admin: {ACCOUNT_NUMBER_DISPLAY}", "error")
         return redirect(url_for("my_downloads"))
 
 @app.route("/my-downloads", methods=["GET", "POST"])
@@ -256,7 +254,6 @@ def admin_dashboard():
                            total_books=len(books),
                            whatsapp=WHATSAPP_NUMBER)
 
-# ---------- ADMIN UPLOAD ----------
 @app.route("/admin/upload", methods=["GET", "POST"])
 def admin_upload():
     if not admin_required():
