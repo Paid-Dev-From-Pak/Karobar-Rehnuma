@@ -28,8 +28,8 @@ os.makedirs(UPLOAD_COVERS, exist_ok=True)
 ALLOWED_EBOOK_EXT = {"pdf", "epub", "mobi"}
 ALLOWED_IMG_EXT = {"png", "jpg", "jpeg", "webp"}
 
-ADMIN_USER = "business10"
-ADMIN_PASS_HASH = generate_password_hash("krp10x") # Yahan apna password change karein
+ADMIN_USER = "admin"
+ADMIN_PASS_HASH = generate_password_hash("admin123") # Yahan apna password change karein
 
 WHATSAPP_NUMBER = "923700157610"          
 ACCOUNT_TITLE = "SYED AFFAN SAEED"
@@ -135,6 +135,7 @@ def verify_payment(order_id):
     order = doc.to_dict()
     order['order_id'] = doc.id
     
+    # Check if book is deleted (for display purpose only)
     if order.get('book_id'):
         book_doc = db.collection('books').document(order['book_id']).get()
         order['is_deleted'] = book_doc.to_dict().get('is_deleted', True) if book_doc.exists else True
@@ -148,7 +149,7 @@ def check_status(order_id):
         return jsonify({"status": "not_found"}), 404
     return jsonify({"status": doc.to_dict().get('status')})
 
-# ---------- DOWNLOAD ----------
+# ---------- DOWNLOAD (FIXED WITHOUT is_deleted CHECK) ----------
 @app.route("/download/<order_id>")
 def download(order_id):
     doc = db.collection('orders').document(order_id).get()
@@ -161,14 +162,20 @@ def download(order_id):
         flash("Payment not verified yet. Download is not available.", "error")
         return redirect(url_for("verify_payment", order_id=order_id))
 
+    file_path = order.get('file_path')
+    full_path = os.path.join(UPLOAD_EBOOKS, file_path)
+    
+    # STRICT CHECK: Sirf file ke disk par hone ko check karein
+    if not file_path or not os.path.exists(full_path):
+        flash(f"⚠️ File not found on server (Server restarted). Please contact admin on WhatsApp: {ACCOUNT_NUMBER_DISPLAY}", "error")
+        return redirect(url_for("my_downloads"))
+
     try:
-        file_path = order['file_path']
         file_ext = file_path.split('.')[-1]
         download_name = f"{order.get('book_title', 'Book')}.{file_ext}"
-        
         return send_from_directory(UPLOAD_EBOOKS, file_path, as_attachment=True, download_name=download_name)
-    except Exception:
-        flash(f"File not found or removed. Contact us on WhatsApp: {ACCOUNT_NUMBER_DISPLAY}", "error")
+    except Exception as e:
+        flash(f"Error downloading file: {str(e)}", "error")
         return redirect(url_for("my_downloads"))
 
 @app.route("/my-downloads", methods=["GET", "POST"])
@@ -178,6 +185,7 @@ def my_downloads():
     if request.method == "POST":
         email = request.form.get("email", "").strip()
         orders_ref = db.collection('orders').where('buyer_email', '==', email).stream()
+        
         for doc in orders_ref:
             o = doc.to_dict()
             o['order_id'] = doc.id
@@ -185,6 +193,10 @@ def my_downloads():
                 book_doc = db.collection('books').document(o['book_id']).get()
                 o['is_deleted'] = book_doc.to_dict().get('is_deleted', True) if book_doc.exists else True
             orders.append(o)
+            
+        # Sorting Fix: Latest order sabse pehle
+        orders.sort(key=lambda x: x.get('created_at', datetime.min), reverse=True)
+        
     return render_template("my_downloads.html", orders=orders, email=email,
                            account_number=ACCOUNT_NUMBER_DISPLAY)
 
@@ -231,7 +243,6 @@ def admin_dashboard():
         o['order_id'] = doc.id
         orders.append(o)
         
-        # Sales calculation
         if o.get('status') == 'verified':
             total_revenue += o.get('amount', 0)
             verified_count += 1
@@ -247,7 +258,6 @@ def admin_dashboard():
                            total_books=len(books),
                            whatsapp=WHATSAPP_NUMBER)
 
-# ---------- ADMIN UPLOAD & EDIT ----------
 @app.route("/admin/upload", methods=["GET", "POST"])
 def admin_upload():
     if not admin_required():
@@ -389,6 +399,7 @@ def admin_verify_order(order_id):
 def admin_delete_book(book_id):
     if not admin_required():
         return redirect(url_for("admin_login"))
+    # Yahan sirf is_deleted True kar rahe hain taake purane orders safe rahein
     db.collection('books').document(book_id).update({"is_deleted": True})
     flash("Book removed from store.", "success")
     return redirect(url_for("admin_dashboard"))
