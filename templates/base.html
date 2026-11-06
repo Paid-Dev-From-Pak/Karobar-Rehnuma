@@ -11,7 +11,6 @@
 <body>
     <nav class="navbar">
         <div class="nav-container">
-            <!-- LOGO AND NAME HERE -->
             <a href="{{ url_for('index') }}" class="logo" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--primary);">
                 <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" style="height: 45px; width: 45px; border-radius: 50%; object-fit: cover;">
                 <span style="font-size: 1.2rem; font-weight: 800; line-height: 1.1;">Karobar Rehnuma<br><span style="font-size: 0.8rem; color: var(--text-soft);">Pakistan</span></span>
@@ -41,26 +40,9 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="footer">
-        <div class="footer-content">
-            <div>
-                <h3 style="display: flex; align-items: center; gap: 10px;">
-                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" style="height: 35px; border-radius: 50%;"> 
-                    Karobar Rehnuma Pakistan
-                </h3>
-                <p>Pakistan's trusted e-book store. Secure payments, instant downloads.</p>
-            </div>
-            <div>
-                <h4>Payment Methods</h4>
-                <p>JazzCash • EasyPaisa • Bank Transfer • Card</p>
-            </div>
-            <div>
-                <h4>Contact</h4>
-                <p><i class="fa-brands fa-whatsapp"></i> 0370-0157610</p>
-                <p>SYED AFFAN SAEED</p>
-            </div>
-        </div>
-        <p class="copyright">© 2024 Karobar Rehnuma Pakistan. All rights reserved.</p>
+    <!-- Footer only with copyright -->
+    <footer class="footer" style="padding: 2rem 1.5rem; text-align: center;">
+        <p class="copyright" style="border-top: none; padding-top: 0;">© 2024 Karobar Rehnuma Pakistan. All rights reserved.</p>
     </footer>
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>

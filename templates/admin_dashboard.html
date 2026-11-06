@@ -39,13 +39,13 @@
                     <td>
                         {% if o.status == 'pending' %}
                         <form method="POST" action="{{ url_for('admin_verify_order', order_id=o.order_id) }}" style="display:inline">
-                            <button name="action" value="approve" class="btn-success">Verify</button>
-                            <button name="action" value="reject" class="btn-danger">Reject</button>
+                            <button name="action" value="approve" class="btn-success" onclick="return confirm('Verify this payment?')">Verify</button>
+                            <button name="action" value="reject" class="btn-danger" onclick="return confirm('Reject this payment?')">Reject</button>
                         </form>
                         {% else %}
-                        <a href="https://wa.me/92{{ o.buyer_phone | replace('-','') | replace(' ','') | replace('+92','') | replace('0','',1) }}?text={{ ('Hi ' ~ o.buyer_name ~ ', your order ' ~ o.order_id ~ ' for ' ~ (o.book_title or 'your book') ~ ' is ' ~ o.status) | urlencode }}"
-                           class="btn-secondary small-btn" target="_blank">
-                            <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                        <a href="https://wa.me/92{{ o.buyer_phone | replace('-','') | replace(' ','') | replace('+92','') | replace('0','',1) }}?text={{ ('Hi ' ~ o.buyer_name ~ ', your order ' ~ o.order_id ~ ' for ' ~ (o.book_title or 'your book') ~ ' is ' ~ o.status ~ '. Download here: https://karobar-rehnuma.onrender.com/verify/' ~ o.order_id) | urlencode }}"
+                           class="btn-secondary small-btn" target="_blank" style="background:#25D366; color:white; border:none;">
+                            <i class="fa-brands fa-whatsapp"></i> Notify
                         </a>
                         {% endif %}
                     </td>

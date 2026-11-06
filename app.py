@@ -10,7 +10,6 @@ app = Flask(__name__)
 app.secret_key = "change-this-to-random-secret-key-2024"
 
 # ---------- FIREBASE SETUP ----------
-# Render par path /etc/secrets/firebase-key.json hoga, local par firebase-key.json
 FIREBASE_KEY_PATH = os.environ.get("FIREBASE_KEY_PATH", "/etc/secrets/firebase-key.json")
 if not os.path.exists(FIREBASE_KEY_PATH):
     FIREBASE_KEY_PATH = "firebase-key.json"
@@ -30,12 +29,12 @@ ALLOWED_EBOOK_EXT = {"pdf", "epub", "mobi"}
 ALLOWED_IMG_EXT = {"png", "jpg", "jpeg", "webp"}
 
 # ---------- ADMIN & PAYMENT DETAILS ----------
-ADMIN_USER = "business10"
-ADMIN_PASS_HASH = generate_password_hash("krp10x")
+ADMIN_USER = "admin"
+ADMIN_PASS_HASH = generate_password_hash("admin123") # Apna password yahan change karein
 
 WHATSAPP_NUMBER = "923700157610"          
 ACCOUNT_TITLE = "SYED AFFAN SAEED"
-ACCOUNT_NUMBER_DISPLAY = "0370-0157610"
+ACCOUNT_NUMBER_DISPLAY = "0370-0157610" # Aapka Easypaisa number
 
 def allowed_file(filename, allowed):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed
@@ -150,7 +149,7 @@ def check_status(order_id):
         return jsonify({"status": "not_found"}), 404
     return jsonify({"status": doc.to_dict().get('status')})
 
-# ---------- DOWNLOAD (Local File) ----------
+# ---------- DOWNLOAD ----------
 @app.route("/download/<order_id>")
 def download(order_id):
     doc = db.collection('orders').document(order_id).get()
@@ -164,7 +163,7 @@ def download(order_id):
         return redirect(url_for("verify_payment", order_id=order_id))
 
     try:
-        file_path = order['file_path'] # e.g. abc123_book.pdf
+        file_path = order['file_path']
         file_ext = file_path.split('.')[-1]
         download_name = f"{order.get('book_title', 'Book')}.{file_ext}"
         
@@ -179,6 +178,7 @@ def my_downloads():
     email = ""
     if request.method == "POST":
         email = request.form.get("email", "").strip()
+        # Fixed Index Error: Removed order_by from query
         orders_ref = db.collection('orders').where('buyer_email', '==', email).stream()
         for doc in orders_ref:
             o = doc.to_dict()
@@ -252,7 +252,6 @@ def admin_upload():
         safe_name = secure_filename(ebook.filename)
         unique_name = f"{uuid.uuid4().hex}_{safe_name}"
         
-        # Save PDF locally in Render
         ebook.save(os.path.join(UPLOAD_EBOOKS, unique_name))
 
         cover_name = ""
@@ -299,14 +298,15 @@ def admin_verify_order(order_id):
 
     if status == "verified":
         buyer_wa = normalize_phone(order["buyer_phone"])
-        base_url = os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:5000")
+        # FIX: Download link fixed to Render URL
+        base_url = os.environ.get("RENDER_EXTERNAL_URL", "https://karobar-rehnuma.onrender.com")
         wa_text = (
             f"*Payment Verified* ✅\n\n"
             f"Hi {order['buyer_name']},\n"
             f"Your payment for *{order.get('book_title', 'your e-book')}* has been verified!\n\n"
             f"Order ID: {order_id}\n"
             f"Download here: {base_url}/verify/{order_id}\n\n"
-            f"Thank you for shopping with us!\n- {ACCOUNT_TITLE}"
+            f"Thank you for shopping with us!" # FIX: Removed Name
         )
         wa_url = f"https://wa.me/{buyer_wa}?text={urllib.parse.quote(wa_text)}"
         flash(f"Order {order_id} verified! WhatsApp will open to notify the customer.", "success")

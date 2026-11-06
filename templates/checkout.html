@@ -9,8 +9,6 @@
         <div class="form-grid">
             <input type="text" name="name" placeholder="Full Name" required>
             <input type="email" name="email" placeholder="Email" required>
-            
-            <!-- Mobile Number Validation -->
             <input type="tel" name="phone" id="phoneInput" placeholder="Phone (03XXXXXXXXX)" 
                    pattern="03[0-9]{9}" maxlength="11" minlength="11"
                    title="Please enter a valid 11-digit mobile number starting with 03" required>
@@ -32,13 +30,6 @@
                     <span>EasyPaisa</span>
                 </div>
             </label>
-            <label class="pm-card">
-                <input type="radio" name="payment_method" value="Bank Transfer" onchange="togglePaymentFields(this)">
-                <div class="pm-content">
-                    <i class="fa-solid fa-building-columns"></i>
-                    <span>Bank Transfer</span>
-                </div>
-            </label>
         </div>
 
         <div id="paymentDetails" class="payment-details">
@@ -47,12 +38,10 @@
                 <p>Select a payment method above to see account details.</p>
             </div>
             
-            <!-- Sender Number Validation -->
             <input type="tel" name="sender_number" id="senderInput" placeholder="Your Sender Number (03XXXXXXXXX)" 
                    pattern="03[0-9]{9}" maxlength="11" minlength="11"
                    title="Please enter a valid 11-digit mobile number starting with 03" class="full-width">
             
-            <!-- Transaction ID Validation -->
             <input type="text" name="transaction_id" id="tidInput" placeholder="Transaction ID (TID) *" 
                    minlength="6" maxlength="25"
                    title="Transaction ID must be at least 6 characters long" class="full-width" required>
@@ -75,40 +64,29 @@ function togglePaymentFields(el) {
     const method = el.value;
     const price = {{ book.price }};
 
-    if (method === 'JazzCash') {
-        info.innerHTML = `<p><strong>JazzCash Number:</strong> ${ACC_NUMBER}</p>
+    // Dono mein Easypaisa likha hai kyunke receive Easypaisa par ho raha hai
+    if (method === 'JazzCash' || method === 'EasyPaisa') {
+        info.innerHTML = `<p><strong>Easypaisa Number:</strong> ${ACC_NUMBER}</p>
         <p><strong>Account Title:</strong> ${ACC_TITLE}</p>
         <p>Send <strong>Rs. ${price}</strong> to the above number, then enter the Transaction ID below.</p>`;
-    } else if (method === 'EasyPaisa') {
-        info.innerHTML = `<p><strong>EasyPaisa Number:</strong> ${ACC_NUMBER}</p>
-        <p><strong>Account Title:</strong> ${ACC_TITLE}</p>
-        <p>Send <strong>Rs. ${price}</strong> to the above number, then enter the Transaction ID below.</p>`;
-    } else if (method === 'Bank Transfer') {
-        info.innerHTML = `<p>For bank transfer, contact us on WhatsApp: <strong>${ACC_NUMBER}</strong></p>
-        <p>Account Title: <strong>${ACC_TITLE}</strong></p>
-        <p>Transfer <strong>Rs. ${price}</strong>, then enter the Transaction ID below.</p>`;
     }
 }
 
-// Extra JS validation (just in case)
 function validateForm() {
     const phone = document.getElementById('phoneInput').value;
     const sender = document.getElementById('senderInput').value;
     const tid = document.getElementById('tidInput').value;
 
-    // Phone format 03XXXXXXXXX
     if (!/^03[0-9]{9}$/.test(phone)) {
-        alert("Mobile number must be 11 digits and start with 03 (e.g., 03001234567)");
+        alert("Mobile number must be 11 digits and start with 03");
         return false;
     }
 
-    // Sender format (if provided, must be 11 digits starting with 03)
     if (sender && !/^03[0-9]{9}$/.test(sender)) {
         alert("Sender number must be 11 digits and start with 03");
         return false;
     }
 
-    // TID minimum length
     if (tid.length < 6) {
         alert("Transaction ID (TID) must be at least 6 characters long.");
         return false;
