@@ -2,19 +2,31 @@
 {% block content %}
 <section class="hero" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 5rem 1.5rem; text-align: left;">
     <div class="hero-content" style="max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 2rem;">
-        <div style="flex: 1; min-width: 300px;">
+        
+        <!-- Text and Buttons Area -->
+        <div class="hero-text" style="flex: 1; min-width: 300px;">
             <span style="background: #4f46e5; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Premium Collection</span>
+            
             <h1 style="font-size: clamp(2.2rem, 5vw, 3.5rem); font-weight: 800; line-height: 1.2; margin: 1.5rem 0;">Unlock Your Potential With Our <span style="color: #818cf8;">E-Books</span></h1>
+            
             <p style="font-size: 1.1rem; color: #cbd5e1; margin-bottom: 2rem; max-width: 500px;">Buy top-rated e-books directly and start reading within minutes. Easy Pakistani payments with instant verification.</p>
-            <a href="#books" class="btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">
-                <i class="fa-solid fa-book-open"></i> Browse Books
-            </a>
+            
+            <!-- 2 Buttons for Mobile and Desktop -->
+            <div class="hero-buttons" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <a href="#books" class="btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">
+                    <i class="fa-solid fa-book-open"></i> Browse Books
+                </a>
+                <a href="{{ url_for('my_downloads') }}" class="btn-secondary" style="padding: 1rem 2rem; font-size: 1.1rem; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+                    <i class="fa-solid fa-download"></i> My Downloads
+                </a>
+            </div>
         </div>
         
-        <!-- Hero Image: hidden on mobile via inline media query trick -->
+        <!-- Logo Area (Hidden on Mobile via CSS) -->
         <div class="hero-image-container" style="flex: 1; min-width: 300px; text-align: right; display: flex; justify-content: center;">
             <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Karobar Rehnuma" style="max-width: 250px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);" class="hide-on-mobile">
         </div>
+        
     </div>
 </section>
 
