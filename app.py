@@ -28,7 +28,7 @@ os.makedirs(UPLOAD_COVERS, exist_ok=True)
 ALLOWED_EBOOK_EXT = {"pdf", "epub", "mobi"}
 ALLOWED_IMG_EXT = {"png", "jpg", "jpeg", "webp"}
 
-# ---------- ADMIN CREDENTIALS ----------
+# Admin Credentials
 ADMIN_USER = "business10"
 ADMIN_PASS_HASH = generate_password_hash("krp10x")
 
@@ -149,7 +149,7 @@ def check_status(order_id):
         return jsonify({"status": "not_found"}), 404
     return jsonify({"status": doc.to_dict().get('status')})
 
-# ---------- DOWNLOAD (FIXED ERROR 500) ----------
+# ---------- DOWNLOAD (DIRECT LINK FIX) ----------
 @app.route("/download/<order_id>")
 def download(order_id):
     doc = db.collection('orders').document(order_id).get()
@@ -162,28 +162,13 @@ def download(order_id):
         flash("Payment not verified yet. Download is not available.", "error")
         return redirect(url_for("verify_payment", order_id=order_id))
 
-    file_path = order.get('file_path')
-    if not file_path:
-        flash(f"⚠️ File record missing in database. Contact admin: {ACCOUNT_NUMBER_DISPLAY}", "error")
-        return redirect(url_for("my_downloads"))
+    # Check karein ke direct link database mein hai ya nahi
+    if order.get("file_url"):
+        return redirect(order["file_url"])
 
-    try:
-        # File ka extension nikalne ke liye
-        file_ext = file_path.split('.')[-1]
-        download_name = f"{order.get('book_title', 'Book')}.{file_ext}"
-        
-        # File ko bhejne ki koshish karein (Agar file udd gayi ho toh error aayega)
-        return send_from_directory(UPLOAD_EBOOKS, file_path, as_attachment=True, download_name=download_name)
-    
-    except FileNotFoundError:
-        # Agar file Render se delete ho chuki ho
-        flash(f"⚠️ This e-book file has been removed from the server. Please contact admin on WhatsApp: {ACCOUNT_NUMBER_DISPLAY}", "error")
-        return redirect(url_for("my_downloads"))
-    
-    except Exception as e:
-        # Kisi aur error ki soorat mein
-        flash(f"Error: {str(e)}", "error")
-        return redirect(url_for("my_downloads"))
+    # Agar purana order hai aur link nahi hai
+    flash(f"⚠️ This is an old order and the file link is missing. Please contact admin on WhatsApp: {ACCOUNT_NUMBER_DISPLAY}", "error")
+    return redirect(url_for("my_downloads"))
 
 @app.route("/my-downloads", methods=["GET", "POST"])
 def my_downloads():
@@ -201,7 +186,7 @@ def my_downloads():
                 o['is_deleted'] = book_doc.to_dict().get('is_deleted', True) if book_doc.exists else True
             orders.append(o)
             
-        # Sorting Fix: Latest order sabse pehle
+        # Latest order sabse pehle
         orders.sort(key=lambda x: x.get('created_at', datetime.min), reverse=True)
         
     return render_template("my_downloads.html", orders=orders, email=email,
@@ -295,6 +280,7 @@ def admin_upload():
             cover.save(os.path.join(UPLOAD_COVERS, cname))
             cover_name = cname
 
+        # Yahan file_url save kar rahe hain
         book_data = {
             "title": title,
             "author": author,
@@ -304,6 +290,7 @@ def admin_upload():
             "show_sale": show_sale,
             "cover_image": cover_name, 
             "file_path": unique_name,
+            "file_url": request.host_url + "static/ebooks/" + unique_name, # NAYA FIX
             "is_deleted": False,
             "created_at": datetime.now()
         }
@@ -353,6 +340,7 @@ def admin_edit_book(book_id):
             unique_name = f"{uuid.uuid4().hex}_{safe_name}"
             ebook.save(os.path.join(UPLOAD_EBOOKS, unique_name))
             update_data["file_path"] = unique_name
+            update_data["file_url"] = request.host_url + "static/ebooks/" + unique_name # EDIT FIX
 
         if cover and cover.filename != "" and allowed_file(cover.filename, ALLOWED_IMG_EXT):
             cname = f"{uuid.uuid4().hex}_{secure_filename(cover.filename)}"
@@ -413,9 +401,3 @@ def admin_delete_book(book_id):
 # ---------- RUN ----------
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
-
-
-
-#     git add .
-# git commit -m "Added revenue dashboard, edit book, and sale price features"
-# git push origin main
