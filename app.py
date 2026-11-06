@@ -1,8 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-import os, uuid, urllib.parse
+import os, uuid, urllib.parse, base64
 import firebase_admin
 from firebase_admin import credentials, firestore
 
@@ -18,17 +18,10 @@ cred = credentials.Certificate(FIREBASE_KEY_PATH)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# ---------- LOCAL STORAGE ----------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_EBOOKS = os.path.join(BASE_DIR, "static", "ebooks")
-UPLOAD_COVERS = os.path.join(BASE_DIR, "static", "images")
-os.makedirs(UPLOAD_EBOOKS, exist_ok=True)
-os.makedirs(UPLOAD_COVERS, exist_ok=True)
-
+# ---------- CONFIG ----------
 ALLOWED_EBOOK_EXT = {"pdf", "epub", "mobi"}
 ALLOWED_IMG_EXT = {"png", "jpg", "jpeg", "webp"}
 
-# Admin Credentials
 ADMIN_USER = "business10"
 ADMIN_PASS_HASH = generate_password_hash("krp10x")
 
@@ -149,7 +142,7 @@ def check_status(order_id):
         return jsonify({"status": "not_found"}), 404
     return jsonify({"status": doc.to_dict().get('status')})
 
-# ---------- DOWNLOAD (DIRECT LINK FIX) ----------
+# ---------- DOWNLOAD (FROM FIREBASE) ----------
 @app.route("/download/<order_id>")
 def download(order_id):
     doc = db.collection('orders').document(order_id).get()
@@ -162,13 +155,25 @@ def download(order_id):
         flash("Payment not verified yet. Download is not available.", "error")
         return redirect(url_for("verify_payment", order_id=order_id))
 
-    # Check karein ke direct link database mein hai ya nahi
-    if order.get("file_url"):
-        return redirect(order["file_url"])
+    book_id = order.get('book_id')
+    if not book_id:
+         flash("Book ID missing in order.", "error")
+         return redirect(url_for("my_downloads"))
 
-    # Agar purana order hai aur link nahi hai
-    flash(f"⚠️ This is an old order and the file link is missing. Please contact admin on WhatsApp: {ACCOUNT_NUMBER_DISPLAY}", "error")
-    return redirect(url_for("my_downloads"))
+    book_doc = db.collection('books').document(book_id).get()
+    if not book_doc.exists:
+        flash("Book deleted.", "error")
+        return redirect(url_for("my_downloads"))
+
+    book = book_doc.to_dict()
+    file_data = book.get('file_data')
+    
+    if not file_data:
+        flash(f"⚠️ File missing from database. Contact admin: {ACCOUNT_NUMBER_DISPLAY}", "error")
+        return redirect(url_for("my_downloads"))
+
+    # File ko download karne ke liye
+    return f'<script>window.location.href = "data:application/pdf;base64,{file_data}";</script>'
 
 @app.route("/my-downloads", methods=["GET", "POST"])
 def my_downloads():
@@ -186,7 +191,6 @@ def my_downloads():
                 o['is_deleted'] = book_doc.to_dict().get('is_deleted', True) if book_doc.exists else True
             orders.append(o)
             
-        # Latest order sabse pehle
         orders.sort(key=lambda x: x.get('created_at', datetime.min), reverse=True)
         
     return render_template("my_downloads.html", orders=orders, email=email,
@@ -250,6 +254,7 @@ def admin_dashboard():
                            total_books=len(books),
                            whatsapp=WHATSAPP_NUMBER)
 
+# ---------- ADMIN UPLOAD (SAVE TO DATABASE) ----------
 @app.route("/admin/upload", methods=["GET", "POST"])
 def admin_upload():
     if not admin_required():
@@ -270,17 +275,9 @@ def admin_upload():
             flash("Title, author and ebook file are required", "error")
             return redirect(url_for("admin_upload"))
 
-        safe_name = secure_filename(ebook.filename)
-        unique_name = f"{uuid.uuid4().hex}_{safe_name}"
-        ebook.save(os.path.join(UPLOAD_EBOOKS, unique_name))
+        # PDF ko Base64 mein convert kar ke database mein save karein
+        ebook_data = base64.b64encode(ebook.read()).decode('utf-8')
 
-        cover_name = ""
-        if cover and cover.filename and allowed_file(cover.filename, ALLOWED_IMG_EXT):
-            cname = f"{uuid.uuid4().hex}_{secure_filename(cover.filename)}"
-            cover.save(os.path.join(UPLOAD_COVERS, cname))
-            cover_name = cname
-
-        # Yahan file_url save kar rahe hain
         book_data = {
             "title": title,
             "author": author,
@@ -288,9 +285,8 @@ def admin_upload():
             "price": float(price),
             "old_price": float(old_price) if show_sale else 0,
             "show_sale": show_sale,
-            "cover_image": cover_name, 
-            "file_path": unique_name,
-            "file_url": request.host_url + "static/ebooks/" + unique_name, # NAYA FIX
+            "cover_image": "", 
+            "file_data": ebook_data, # Yahan PDF save ho rahi hai
             "is_deleted": False,
             "created_at": datetime.now()
         }
@@ -324,7 +320,6 @@ def admin_edit_book(book_id):
         show_sale = request.form.get("show_sale") == "on"
         
         ebook = request.files.get("ebook")
-        cover = request.files.get("cover")
 
         update_data = {
             "title": title,
@@ -336,16 +331,8 @@ def admin_edit_book(book_id):
         }
 
         if ebook and ebook.filename != "":
-            safe_name = secure_filename(ebook.filename)
-            unique_name = f"{uuid.uuid4().hex}_{safe_name}"
-            ebook.save(os.path.join(UPLOAD_EBOOKS, unique_name))
-            update_data["file_path"] = unique_name
-            update_data["file_url"] = request.host_url + "static/ebooks/" + unique_name # EDIT FIX
-
-        if cover and cover.filename != "" and allowed_file(cover.filename, ALLOWED_IMG_EXT):
-            cname = f"{uuid.uuid4().hex}_{secure_filename(cover.filename)}"
-            cover.save(os.path.join(UPLOAD_COVERS, cname))
-            update_data["cover_image"] = cname
+            ebook_data = base64.b64encode(ebook.read()).decode('utf-8')
+            update_data["file_data"] = ebook_data
 
         doc_ref.update(update_data)
         flash("Book updated successfully!", "success")
