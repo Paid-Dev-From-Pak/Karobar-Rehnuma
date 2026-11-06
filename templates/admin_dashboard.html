@@ -9,7 +9,27 @@
         </div>
     </div>
 
-    <h2 class="section-title">Orders</h2>
+    <!-- Sales Stats Cards -->
+    <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+        <div class="stat-card" style="background: white; padding: 1.5rem; border-radius: 14px; box-shadow: var(--shadow); border-left: 5px solid var(--primary);">
+            <p style="color: var(--text-soft); font-weight: 600; font-size: 0.9rem;">Total Revenue</p>
+            <h2 style="font-size: 2rem; font-weight: 800; color: var(--text);">Rs. {{ "%.0f"|format(total_revenue) }}</h2>
+        </div>
+        <div class="stat-card" style="background: white; padding: 1.5rem; border-radius: 14px; box-shadow: var(--shadow); border-left: 5px solid var(--success);">
+            <p style="color: var(--text-soft); font-weight: 600; font-size: 0.9rem;">Verified Orders</p>
+            <h2 style="font-size: 2rem; font-weight: 800; color: var(--text);">{{ verified_count }}</h2>
+        </div>
+        <div class="stat-card" style="background: white; padding: 1.5rem; border-radius: 14px; box-shadow: var(--shadow); border-left: 5px solid var(--warning);">
+            <p style="color: var(--text-soft); font-weight: 600; font-size: 0.9rem;">Pending Orders</p>
+            <h2 style="font-size: 2rem; font-weight: 800; color: var(--text);">{{ pending_count }}</h2>
+        </div>
+        <div class="stat-card" style="background: white; padding: 1.5rem; border-radius: 14px; box-shadow: var(--shadow); border-left: 5px solid #4f46e5;">
+            <p style="color: var(--text-soft); font-weight: 600; font-size: 0.9rem;">Total Active Books</p>
+            <h2 style="font-size: 2rem; font-weight: 800; color: var(--text);">{{ total_books }}</h2>
+        </div>
+    </div>
+
+    <h2 class="section-title">Orders History</h2>
     <div class="table-wrap">
         <table>
             <thead>
@@ -43,7 +63,7 @@
                             <button name="action" value="reject" class="btn-danger" onclick="return confirm('Reject this payment?')">Reject</button>
                         </form>
                         {% else %}
-                        <a href="https://wa.me/92{{ o.buyer_phone | replace('-','') | replace(' ','') | replace('+92','') | replace('0','',1) }}?text={{ ('Hi ' ~ o.buyer_name ~ ', your order ' ~ o.order_id ~ ' for ' ~ (o.book_title or 'your book') ~ ' is ' ~ o.status ~ '. Download here: https://karobar-rehnuma.onrender.com/verify/' ~ o.order_id) | urlencode }}"
+                        <a href="https://wa.me/92{{ o.buyer_phone | replace('-','') | replace(' ','') | replace('+92','') | replace('0','',1) }}?text={{ ('Hi ' ~ o.buyer_name ~ ', your order ' ~ o.order_id ~ ' is ' ~ o.status ~ '. Download here: https://karobar-rehnuma.onrender.com/verify/' ~ o.order_id) | urlencode }}"
                            class="btn-secondary small-btn" target="_blank" style="background:#25D366; color:white; border:none;">
                             <i class="fa-brands fa-whatsapp"></i> Notify
                         </a>
@@ -64,9 +84,12 @@
             <h4>{{ b.title }}</h4>
             <p>By {{ b.author }}</p>
             <p>Rs. {{ "%.0f"|format(b.price) }}</p>
-            <form method="POST" action="{{ url_for('admin_delete_book', book_id=b.id) }}" onsubmit="return confirm('Remove this book from store? Existing orders will stay safe.')">
-                <button class="btn-danger small-btn">Remove</button>
-            </form>
+            <div style="display: flex; gap: 5px; margin-top: 10px;">
+                <a href="{{ url_for('admin_edit_book', book_id=b.id) }}" class="btn-primary small-btn" style="flex: 1; text-align: center; padding: 6px;">Edit</a>
+                <form method="POST" action="{{ url_for('admin_delete_book', book_id=b.id) }}" onsubmit="return confirm('Remove this book from store?')" style="flex: 1;">
+                    <button class="btn-danger small-btn" style="width: 100%; padding: 6px;">Remove</button>
+                </form>
+            </div>
         </div>
         {% else %}
         <p class="empty">No active books.</p>

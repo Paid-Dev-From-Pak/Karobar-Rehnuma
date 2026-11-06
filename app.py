@@ -18,7 +18,7 @@ cred = credentials.Certificate(FIREBASE_KEY_PATH)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# ---------- LOCAL STORAGE (RENDER) ----------
+# ---------- LOCAL STORAGE ----------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_EBOOKS = os.path.join(BASE_DIR, "static", "ebooks")
 UPLOAD_COVERS = os.path.join(BASE_DIR, "static", "images")
@@ -28,13 +28,12 @@ os.makedirs(UPLOAD_COVERS, exist_ok=True)
 ALLOWED_EBOOK_EXT = {"pdf", "epub", "mobi"}
 ALLOWED_IMG_EXT = {"png", "jpg", "jpeg", "webp"}
 
-# ---------- ADMIN & PAYMENT DETAILS ----------
-ADMIN_USER = "admin"
-ADMIN_PASS_HASH = generate_password_hash("admin123") # Apna password yahan change karein
+ADMIN_USER = "business10"
+ADMIN_PASS_HASH = generate_password_hash("krp10x") # Yahan apna password change karein
 
 WHATSAPP_NUMBER = "923700157610"          
 ACCOUNT_TITLE = "SYED AFFAN SAEED"
-ACCOUNT_NUMBER_DISPLAY = "0370-0157610" # Aapka Easypaisa number
+ACCOUNT_NUMBER_DISPLAY = "0370-0157610"
 
 def allowed_file(filename, allowed):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed
@@ -178,7 +177,6 @@ def my_downloads():
     email = ""
     if request.method == "POST":
         email = request.form.get("email", "").strip()
-        # Fixed Index Error: Removed order_by from query
         orders_ref = db.collection('orders').where('buyer_email', '==', email).stream()
         for doc in orders_ref:
             o = doc.to_dict()
@@ -224,14 +222,32 @@ def admin_dashboard():
         
     orders_ref = db.collection('orders').order_by('created_at', direction=firestore.Query.DESCENDING).stream()
     orders = []
+    total_revenue = 0
+    verified_count = 0
+    pending_count = 0
+
     for doc in orders_ref:
         o = doc.to_dict()
         o['order_id'] = doc.id
         orders.append(o)
+        
+        # Sales calculation
+        if o.get('status') == 'verified':
+            total_revenue += o.get('amount', 0)
+            verified_count += 1
+        elif o.get('status') == 'pending':
+            pending_count += 1
 
-    return render_template("admin_dashboard.html", books=books, orders=orders,
+    return render_template("admin_dashboard.html", 
+                           books=books, 
+                           orders=orders,
+                           total_revenue=total_revenue,
+                           verified_count=verified_count,
+                           pending_count=pending_count,
+                           total_books=len(books),
                            whatsapp=WHATSAPP_NUMBER)
 
+# ---------- ADMIN UPLOAD & EDIT ----------
 @app.route("/admin/upload", methods=["GET", "POST"])
 def admin_upload():
     if not admin_required():
@@ -242,6 +258,9 @@ def admin_upload():
         author = request.form.get("author", "").strip()
         desc = request.form.get("description", "").strip()
         price = request.form.get("price", "0")
+        old_price = request.form.get("old_price", "0")
+        show_sale = request.form.get("show_sale") == "on"
+        
         ebook = request.files.get("ebook")
         cover = request.files.get("cover")
 
@@ -251,7 +270,6 @@ def admin_upload():
 
         safe_name = secure_filename(ebook.filename)
         unique_name = f"{uuid.uuid4().hex}_{safe_name}"
-        
         ebook.save(os.path.join(UPLOAD_EBOOKS, unique_name))
 
         cover_name = ""
@@ -265,6 +283,8 @@ def admin_upload():
             "author": author,
             "description": desc,
             "price": float(price),
+            "old_price": float(old_price) if show_sale else 0,
+            "show_sale": show_sale,
             "cover_image": cover_name, 
             "file_path": unique_name,
             "is_deleted": False,
@@ -276,6 +296,57 @@ def admin_upload():
         return redirect(url_for("admin_dashboard"))
 
     return render_template("admin_upload.html")
+
+@app.route("/admin/edit-book/<book_id>", methods=["GET", "POST"])
+def admin_edit_book(book_id):
+    if not admin_required():
+        return redirect(url_for("admin_login"))
+
+    doc_ref = db.collection('books').document(book_id)
+    doc = doc_ref.get()
+    if not doc.exists:
+        flash("Book not found", "error")
+        return redirect(url_for("admin_dashboard"))
+        
+    book = doc.to_dict()
+    book['id'] = doc.id
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        author = request.form.get("author", "").strip()
+        desc = request.form.get("description", "").strip()
+        price = request.form.get("price", "0")
+        old_price = request.form.get("old_price", "0")
+        show_sale = request.form.get("show_sale") == "on"
+        
+        ebook = request.files.get("ebook")
+        cover = request.files.get("cover")
+
+        update_data = {
+            "title": title,
+            "author": author,
+            "description": desc,
+            "price": float(price),
+            "old_price": float(old_price) if show_sale else 0,
+            "show_sale": show_sale
+        }
+
+        if ebook and ebook.filename != "":
+            safe_name = secure_filename(ebook.filename)
+            unique_name = f"{uuid.uuid4().hex}_{safe_name}"
+            ebook.save(os.path.join(UPLOAD_EBOOKS, unique_name))
+            update_data["file_path"] = unique_name
+
+        if cover and cover.filename != "" and allowed_file(cover.filename, ALLOWED_IMG_EXT):
+            cname = f"{uuid.uuid4().hex}_{secure_filename(cover.filename)}"
+            cover.save(os.path.join(UPLOAD_COVERS, cname))
+            update_data["cover_image"] = cname
+
+        doc_ref.update(update_data)
+        flash("Book updated successfully!", "success")
+        return redirect(url_for("admin_dashboard"))
+
+    return render_template("admin_upload.html", book=book, is_edit=True)
 
 @app.route("/admin/verify-order/<order_id>", methods=["POST"])
 def admin_verify_order(order_id):
@@ -298,7 +369,6 @@ def admin_verify_order(order_id):
 
     if status == "verified":
         buyer_wa = normalize_phone(order["buyer_phone"])
-        # FIX: Download link fixed to Render URL
         base_url = os.environ.get("RENDER_EXTERNAL_URL", "https://karobar-rehnuma.onrender.com")
         wa_text = (
             f"*Payment Verified* ✅\n\n"
@@ -306,7 +376,7 @@ def admin_verify_order(order_id):
             f"Your payment for *{order.get('book_title', 'your e-book')}* has been verified!\n\n"
             f"Order ID: {order_id}\n"
             f"Download here: {base_url}/verify/{order_id}\n\n"
-            f"Thank you for shopping with us!" # FIX: Removed Name
+            f"Thank you for shopping with us!"
         )
         wa_url = f"https://wa.me/{buyer_wa}?text={urllib.parse.quote(wa_text)}"
         flash(f"Order {order_id} verified! WhatsApp will open to notify the customer.", "success")
@@ -320,7 +390,7 @@ def admin_delete_book(book_id):
     if not admin_required():
         return redirect(url_for("admin_login"))
     db.collection('books').document(book_id).update({"is_deleted": True})
-    flash("Book removed from store. Existing orders are safe.", "success")
+    flash("Book removed from store.", "success")
     return redirect(url_for("admin_dashboard"))
 
 # ---------- RUN ----------

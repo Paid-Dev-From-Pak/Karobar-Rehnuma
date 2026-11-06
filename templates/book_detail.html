@@ -13,7 +13,14 @@
             <h1>{{ book.title }}</h1>
             <p class="author"><i class="fa-solid fa-user-pen"></i> By {{ book.author }}</p>
             <p class="desc">{{ book.description }}</p>
-            <div class="price-large">Rs. {{ "%.0f"|format(book.price) }}</div>
+            
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="price-large">Rs. {{ "%.0f"|format(book.price) }}</div>
+                {% if book.show_sale and book.old_price > 0 %}
+                    <div style="text-decoration: line-through; color: #94a3b8; font-size: 1.5rem;">Rs. {{ "%.0f"|format(book.old_price) }}</div>
+                {% endif %}
+            </div>
+
             <a href="{{ url_for('checkout', book_id=book.id) }}" class="btn-primary">
                 <i class="fa-solid fa-credit-card"></i> Buy Now & Download
             </a>

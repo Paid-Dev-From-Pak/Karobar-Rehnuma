@@ -2,21 +2,44 @@
 {% block content %}
 <section class="auth-section">
     <div class="auth-card wide">
-        <h1><i class="fa-solid fa-cloud-arrow-up"></i> Upload E-Book</h1>
+        <h1><i class="fa-solid fa-cloud-arrow-up"></i> {% if is_edit %} Edit Book {% else %} Upload New Book {% endif %}</h1>
         <form method="POST" enctype="multipart/form-data" class="upload-form">
-            <input type="text" name="title" placeholder="Book Title" required>
-            <input type="text" name="author" placeholder="Author" required>
-            <textarea name="description" placeholder="Description" rows="4"></textarea>
-            <input type="number" step="0.01" name="price" placeholder="Price (PKR)" required>
-            <label>Cover Image (optional)
+            <input type="text" name="title" placeholder="Book Title" value="{{ book.title if is_edit else '' }}" required>
+            <input type="text" name="author" placeholder="Author" value="{{ book.author if is_edit else '' }}" required>
+            <textarea name="description" placeholder="Description" rows="4">{{ book.description if is_edit else '' }}</textarea>
+            
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label>New/Sale Price (PKR) *</label>
+                    <input type="number" step="0.01" name="price" placeholder="New Price" value="{{ book.price if is_edit else '' }}" required>
+                </div>
+                <div style="flex: 1;">
+                    <label>Old Price (For Strike-through)</label>
+                    <input type="number" step="0.01" name="old_price" placeholder="Old Price" value="{{ book.old_price if is_edit and book.old_price else '' }}">
+                </div>
+            </div>
+
+            <label style="flex-direction: row; align-items: center; gap: 8px; cursor: pointer; margin: 10px 0; background: #f8fafc; padding: 10px; border-radius: 8px;">
+                <input type="checkbox" name="show_sale" style="width: auto;" {% if is_edit and book.show_sale %} checked {% endif %}>
+                <strong>Show Old Price (Sale Badge)</strong> - Tick this to show old price with strike-through
+            </label>
+
+            <label>Cover Image {% if is_edit %}(Leave empty to keep current){% endif %}
                 <input type="file" name="cover" accept="image/*">
             </label>
-            <label>E-Book File (PDF/EPUB/MOBI) *
-                <input type="file" name="ebook" accept=".pdf,.epub,.mobi" required>
+            {% if is_edit and book.cover_image %}
+                <img src="{{ url_for('static', filename='images/' + book.cover_image) }}" style="height: 60px; width: 40px; object-fit: cover; border-radius: 4px; margin-bottom: 10px;">
+            {% endif %}
+
+            <label>E-Book File {% if is_edit %}(Leave empty to keep current){% endif %}
+                <input type="file" name="ebook" accept=".pdf,.epub,.mobi" {% if not is_edit %}required{% endif %}>
             </label>
-            <button type="submit" class="btn-primary full-width">Upload</button>
+
+            <button type="submit" class="btn-primary full-width" style="margin-top: 15px;">
+                {% if is_edit %} Update Book {% else %} Upload Book {% endif %}
+            </button>
         </form>
-        <p class="note small"><a href="{{ url_for('admin_dashboard') }}">← Back to Dashboard</a></p>
+        <p class="note small" style="margin-top: 1rem;"><a href="{{ url_for('admin_dashboard') }}">← Back to Dashboard</a></p>
     </div>
 </section>
 {% endblock %}

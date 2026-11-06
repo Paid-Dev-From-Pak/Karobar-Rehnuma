@@ -2,30 +2,18 @@
 {% block content %}
 <section class="hero">
     <div class="hero-content">
-        
         <div class="hero-text">
-            <span style="background: #4f46e5; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: inline-block;">Premium Collection</span>
-            
+            <span class="premium-badge">Premium Collection</span>
             <h1>Unlock Your Potential With Our <span style="color: #818cf8;">E-Books</span></h1>
-            
-            <p>Buy top-rated e-books directly and start reading within minutes. Easy Pakistani payments with instant verification.</p>
-            
-            <!-- Buttons -->
+            <p>Discover a world of knowledge with our premium e-books. Download instantly after easy payment verification in Pakistan.</p>
             <div class="hero-buttons">
-                <a href="#books" class="btn-primary hero-btn">
-                    <i class="fa-solid fa-book-open"></i> Browse Books
-                </a>
-                <a href="{{ url_for('my_downloads') }}" class="btn-secondary hero-btn" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
-                    <i class="fa-solid fa-download"></i> My Downloads
-                </a>
+                <a href="#books" class="btn-primary hero-btn"><i class="fa-solid fa-book-open"></i> Browse Books</a>
+                <a href="{{ url_for('my_downloads') }}" class="btn-secondary hero-btn"><i class="fa-solid fa-download"></i> My Downloads</a>
             </div>
         </div>
-        
-        <!-- Logo (Hidden on Mobile) -->
-        <div class="hero-image-container">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Karobar Rehnuma" class="hide-on-mobile">
+        <div class="hero-image-container hide-on-mobile">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Karobar Rehnuma">
         </div>
-        
     </div>
 </section>
 
@@ -34,20 +22,29 @@
     <div class="books-grid">
         {% for book in books %}
         <div class="book-card">
-            <div class="book-cover">
+            <div class="book-cover" style="position: relative;">
                 {% if book.cover_image %}
                     <img src="{{ url_for('static', filename='images/' + book.cover_image) }}" alt="{{ book.title }}">
                 {% else %}
                     <div class="no-cover"><i class="fa-solid fa-book"></i></div>
+                {% endif %}
+                
+                {% if book.show_sale %}
+                    <span style="position: absolute; top: 10px; left: 10px; background: #dc2626; color: white; padding: 4px 10px; border-radius: 5px; font-weight: 700; font-size: 0.8rem; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">SALE</span>
                 {% endif %}
             </div>
             <div class="book-info">
                 <h3>{{ book.title }}</h3>
                 <p class="author"><i class="fa-solid fa-user-pen"></i> {{ book.author }}</p>
                 <p class="desc">{{ book.description[:80] }}{% if book.description and book.description|length > 80 %}...{% endif %}</p>
-                <div class="book-footer">
-                    <span class="price">Rs. {{ "%.0f"|format(book.price) }}</span>
-                    <a href="{{ url_for('book_detail', book_id=book.id) }}" class="btn-view">View</a>
+                <div class="book-footer" style="flex-direction: column; align-items: flex-start; gap: 5px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="price">Rs. {{ "%.0f"|format(book.price) }}</span>
+                        {% if book.show_sale and book.old_price > 0 %}
+                            <span style="text-decoration: line-through; color: #94a3b8; font-size: 0.9rem;">Rs. {{ "%.0f"|format(book.old_price) }}</span>
+                        {% endif %}
+                    </div>
+                    <a href="{{ url_for('book_detail', book_id=book.id) }}" class="btn-view" style="width: 100%; text-align: center; margin-top: 10px;">View</a>
                 </div>
             </div>
         </div>
