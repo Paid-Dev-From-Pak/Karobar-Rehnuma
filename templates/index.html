@@ -24,7 +24,6 @@
         <div class="book-card">
             <div class="book-cover" style="position: relative;">
                 {% if book.cover_image %}
-                    <!-- CLOUDINARY LINK FIX -->
                     <img src="{{ book.cover_image }}" alt="{{ book.title }}">
                 {% else %}
                     <div class="no-cover"><i class="fa-solid fa-book"></i></div>
@@ -37,7 +36,10 @@
             <div class="book-info">
                 <h3>{{ book.title }}</h3>
                 <p class="author"><i class="fa-solid fa-user-pen"></i> {{ book.author }}</p>
-                <p class="desc">{{ book.description[:80] }}{% if book.description and book.description|length > 80 %}...{% endif %}</p>
+                
+                <!-- Yahan bhi description filter laga diya -->
+                <p class="desc">{{ (book.description[:80] + '...' if book.description and book.description|length > 80 else book.description) | nl2br | safe }}</p>
+                
                 <div class="book-footer" style="flex-direction: column; align-items: flex-start; gap: 5px;">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span class="price">Rs. {{ "%.0f"|format(book.price) }}</span>

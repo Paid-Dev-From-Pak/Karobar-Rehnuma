@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
@@ -10,6 +10,13 @@ import cloudinary.uploader
 
 app = Flask(__name__)
 app.secret_key = "change-this-to-random-secret-key-2024"
+
+# Line Break Filter (Description ke liye)
+@app.template_filter('nl2br')
+def nl2br(value):
+    if value:
+        return value.replace('\n', '<br>')
+    return value
 
 # ---------- FIREBASE SETUP ----------
 FIREBASE_KEY_PATH = os.environ.get("FIREBASE_KEY_PATH", "/etc/secrets/firebase-key.json")
@@ -151,7 +158,7 @@ def check_status(order_id):
         return jsonify({"status": "not_found"}), 404
     return jsonify({"status": doc.to_dict().get('status')})
 
-# ---------- DOWNLOAD (FROM CLOUDINARY) ----------
+# ---------- DOWNLOAD ----------
 @app.route("/download/<order_id>")
 def download(order_id):
     doc = db.collection('orders').document(order_id).get()
@@ -181,7 +188,6 @@ def download(order_id):
         flash(f"⚠️ File missing. Contact admin: {ACCOUNT_NUMBER_DISPLAY}", "error")
         return redirect(url_for("my_downloads"))
 
-    # Redirect to Cloudinary Download Link
     return redirect(pdf_url)
 
 @app.route("/my-downloads", methods=["GET", "POST"])
@@ -263,7 +269,6 @@ def admin_dashboard():
                            total_books=len(books),
                            whatsapp=WHATSAPP_NUMBER)
 
-# ---------- ADMIN UPLOAD (CLOUDINARY) ----------
 @app.route("/admin/upload", methods=["GET", "POST"])
 def admin_upload():
     if not admin_required():
@@ -284,7 +289,6 @@ def admin_upload():
             flash("Title, author and ebook file are required", "error")
             return redirect(url_for("admin_upload"))
 
-        # 1. Upload PDF to Cloudinary
         pdf_url = ""
         try:
             pdf_upload = cloudinary.uploader.upload(ebook, resource_type="auto")
@@ -293,7 +297,6 @@ def admin_upload():
             flash(f"Error uploading PDF to Cloudinary: {str(e)}", "error")
             return redirect(url_for("admin_upload"))
 
-        # 2. Upload Cover to Cloudinary
         cover_url = ""
         if cover and cover.filename and allowed_file(cover.filename, ALLOWED_IMG_EXT):
             try:
@@ -310,7 +313,7 @@ def admin_upload():
             "old_price": float(old_price) if show_sale else 0,
             "show_sale": show_sale,
             "cover_image": cover_url, 
-            "pdf_url": pdf_url, # Cloudinary link saved here
+            "pdf_url": pdf_url,
             "is_deleted": False,
             "created_at": datetime.now()
         }
