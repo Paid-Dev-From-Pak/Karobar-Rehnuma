@@ -1,8 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-import os, uuid, urllib.parse, base64
+import os, uuid, urllib.parse
 import firebase_admin
 from firebase_admin import credentials, firestore
 
@@ -18,7 +18,13 @@ cred = credentials.Certificate(FIREBASE_KEY_PATH)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# ---------- CONFIG ----------
+# ---------- LOCAL STORAGE ----------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_EBOOKS = os.path.join(BASE_DIR, "static", "ebooks")
+UPLOAD_COVERS = os.path.join(BASE_DIR, "static", "images")
+os.makedirs(UPLOAD_EBOOKS, exist_ok=True)
+os.makedirs(UPLOAD_COVERS, exist_ok=True)
+
 ALLOWED_EBOOK_EXT = {"pdf", "epub", "mobi"}
 ALLOWED_IMG_EXT = {"png", "jpg", "jpeg", "webp"}
 
@@ -142,7 +148,7 @@ def check_status(order_id):
         return jsonify({"status": "not_found"}), 404
     return jsonify({"status": doc.to_dict().get('status')})
 
-# ---------- DOWNLOAD (FROM FIREBASE) ----------
+# ---------- DOWNLOAD (LOCAL FILE) ----------
 @app.route("/download/<order_id>")
 def download(order_id):
     doc = db.collection('orders').document(order_id).get()
@@ -155,25 +161,21 @@ def download(order_id):
         flash("Payment not verified yet. Download is not available.", "error")
         return redirect(url_for("verify_payment", order_id=order_id))
 
-    book_id = order.get('book_id')
-    if not book_id:
-         flash("Book ID missing in order.", "error")
-         return redirect(url_for("my_downloads"))
-
-    book_doc = db.collection('books').document(book_id).get()
-    if not book_doc.exists:
-        flash("Book deleted.", "error")
+    file_path = order.get('file_path')
+    if not file_path:
+        flash(f"⚠️ File record missing. Contact admin: {ACCOUNT_NUMBER_DISPLAY}", "error")
         return redirect(url_for("my_downloads"))
 
-    book = book_doc.to_dict()
-    file_data = book.get('file_data')
-    
-    if not file_data:
-        flash(f"⚠️ File missing from database. Contact admin: {ACCOUNT_NUMBER_DISPLAY}", "error")
+    try:
+        file_ext = file_path.split('.')[-1]
+        download_name = f"{order.get('book_title', 'Book')}.{file_ext}"
+        return send_from_directory(UPLOAD_EBOOKS, file_path, as_attachment=True, download_name=download_name)
+    except FileNotFoundError:
+        flash(f"⚠️ This e-book file has been removed from the server. Please contact admin on WhatsApp: {ACCOUNT_NUMBER_DISPLAY}", "error")
         return redirect(url_for("my_downloads"))
-
-    # File ko download karne ke liye
-    return f'<script>window.location.href = "data:application/pdf;base64,{file_data}";</script>'
+    except Exception as e:
+        flash(f"Error: {str(e)}", "error")
+        return redirect(url_for("my_downloads"))
 
 @app.route("/my-downloads", methods=["GET", "POST"])
 def my_downloads():
@@ -254,7 +256,7 @@ def admin_dashboard():
                            total_books=len(books),
                            whatsapp=WHATSAPP_NUMBER)
 
-# ---------- ADMIN UPLOAD (SAVE TO DATABASE) ----------
+# ---------- ADMIN UPLOAD ----------
 @app.route("/admin/upload", methods=["GET", "POST"])
 def admin_upload():
     if not admin_required():
@@ -275,8 +277,15 @@ def admin_upload():
             flash("Title, author and ebook file are required", "error")
             return redirect(url_for("admin_upload"))
 
-        # PDF ko Base64 mein convert kar ke database mein save karein
-        ebook_data = base64.b64encode(ebook.read()).decode('utf-8')
+        safe_name = secure_filename(ebook.filename)
+        unique_name = f"{uuid.uuid4().hex}_{safe_name}"
+        ebook.save(os.path.join(UPLOAD_EBOOKS, unique_name))
+
+        cover_name = ""
+        if cover and cover.filename and allowed_file(cover.filename, ALLOWED_IMG_EXT):
+            cname = f"{uuid.uuid4().hex}_{secure_filename(cover.filename)}"
+            cover.save(os.path.join(UPLOAD_COVERS, cname))
+            cover_name = cname
 
         book_data = {
             "title": title,
@@ -285,8 +294,8 @@ def admin_upload():
             "price": float(price),
             "old_price": float(old_price) if show_sale else 0,
             "show_sale": show_sale,
-            "cover_image": "", 
-            "file_data": ebook_data, # Yahan PDF save ho rahi hai
+            "cover_image": cover_name, 
+            "file_path": unique_name,
             "is_deleted": False,
             "created_at": datetime.now()
         }
@@ -320,6 +329,7 @@ def admin_edit_book(book_id):
         show_sale = request.form.get("show_sale") == "on"
         
         ebook = request.files.get("ebook")
+        cover = request.files.get("cover")
 
         update_data = {
             "title": title,
@@ -331,8 +341,15 @@ def admin_edit_book(book_id):
         }
 
         if ebook and ebook.filename != "":
-            ebook_data = base64.b64encode(ebook.read()).decode('utf-8')
-            update_data["file_data"] = ebook_data
+            safe_name = secure_filename(ebook.filename)
+            unique_name = f"{uuid.uuid4().hex}_{safe_name}"
+            ebook.save(os.path.join(UPLOAD_EBOOKS, unique_name))
+            update_data["file_path"] = unique_name
+
+        if cover and cover.filename != "" and allowed_file(cover.filename, ALLOWED_IMG_EXT):
+            cname = f"{uuid.uuid4().hex}_{secure_filename(cover.filename)}"
+            cover.save(os.path.join(UPLOAD_COVERS, cname))
+            update_data["cover_image"] = cname
 
         doc_ref.update(update_data)
         flash("Book updated successfully!", "success")
