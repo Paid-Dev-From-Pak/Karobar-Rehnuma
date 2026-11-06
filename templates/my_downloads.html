@@ -15,7 +15,8 @@
         <div class="order-card">
             <div class="order-cover">
                 {% if o.cover_image and not o.is_deleted %}
-                    <img src="{{ url_for('static', filename='images/' + o.cover_image) }}" alt="">
+                    <!-- CLOUDINARY LINK FIX -->
+                    <img src="{{ o.cover_image }}" alt="">
                 {% else %}
                     <div class="no-cover small"><i class="fa-solid fa-book"></i></div>
                 {% endif %}

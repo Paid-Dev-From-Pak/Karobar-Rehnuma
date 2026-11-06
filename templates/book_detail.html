@@ -4,7 +4,8 @@
     <div class="detail-card">
         <div class="detail-cover">
             {% if book.cover_image %}
-                <img src="{{ url_for('static', filename='images/' + book.cover_image) }}" alt="{{ book.title }}">
+                <!-- CLOUDINARY LINK FIX -->
+                <img src="{{ book.cover_image }}" alt="{{ book.title }}">
             {% else %}
                 <div class="no-cover large"><i class="fa-solid fa-book"></i></div>
             {% endif %}

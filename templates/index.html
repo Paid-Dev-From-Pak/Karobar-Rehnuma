@@ -24,7 +24,8 @@
         <div class="book-card">
             <div class="book-cover" style="position: relative;">
                 {% if book.cover_image %}
-                    <img src="{{ url_for('static', filename='images/' + book.cover_image) }}" alt="{{ book.title }}">
+                    <!-- CLOUDINARY LINK FIX -->
+                    <img src="{{ book.cover_image }}" alt="{{ book.title }}">
                 {% else %}
                     <div class="no-cover"><i class="fa-solid fa-book"></i></div>
                 {% endif %}
