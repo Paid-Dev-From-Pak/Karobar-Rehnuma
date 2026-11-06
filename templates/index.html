@@ -10,8 +10,10 @@
                 <i class="fa-solid fa-book-open"></i> Browse Books
             </a>
         </div>
-        <div style="flex: 1; min-width: 300px; text-align: right; display: flex; justify-content: center;">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Karobar Rehnuma" style="max-width: 250px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+        
+        <!-- Hero Image: hidden on mobile via inline media query trick -->
+        <div class="hero-image-container" style="flex: 1; min-width: 300px; text-align: right; display: flex; justify-content: center;">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Karobar Rehnuma" style="max-width: 250px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);" class="hide-on-mobile">
         </div>
     </div>
 </section>

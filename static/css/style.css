@@ -409,3 +409,8 @@ tr:hover { background: #f8fafc; }
     .search-form { flex-direction: column; }
     .admin-header { flex-direction: column; align-items: flex-start; }
 }
+
+@media (max-width: 768px) {
+    .hide-on-mobile { display: none !important; }
+    .hero-image-container { display: none !important; }
+}

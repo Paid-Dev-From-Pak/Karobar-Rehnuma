@@ -15,16 +15,10 @@
         </div>
 
         <h3><i class="fa-solid fa-wallet"></i> Payment Method</h3>
-        <div class="payment-methods">
-            <label class="pm-card">
-                <input type="radio" name="payment_method" value="JazzCash" required onchange="togglePaymentFields(this)">
-                <div class="pm-content">
-                    <i class="fa-solid fa-mobile-screen-button"></i>
-                    <span>JazzCash</span>
-                </div>
-            </label>
-            <label class="pm-card">
-                <input type="radio" name="payment_method" value="EasyPaisa" onchange="togglePaymentFields(this)">
+        <div class="payment-methods" style="display: flex; justify-content: center;">
+            <!-- Sirf Easypaisa ka option -->
+            <label class="pm-card" style="width: 100%; max-width: 250px;">
+                <input type="radio" name="payment_method" value="EasyPaisa" required onchange="togglePaymentFields(this)">
                 <div class="pm-content">
                     <i class="fa-solid fa-mobile-screen-button"></i>
                     <span>EasyPaisa</span>
@@ -35,7 +29,7 @@
         <div id="paymentDetails" class="payment-details">
             <h3><i class="fa-solid fa-circle-info"></i> Payment Details</h3>
             <div id="paymentInfo" class="payment-info">
-                <p>Select a payment method above to see account details.</p>
+                <p>Send the amount to the EasyPaisa number below and enter the Transaction ID.</p>
             </div>
             
             <input type="tel" name="sender_number" id="senderInput" placeholder="Your Sender Number (03XXXXXXXXX)" 
@@ -61,15 +55,12 @@ const ACC_NUMBER = "{{ account_number }}";
 
 function togglePaymentFields(el) {
     const info = document.getElementById('paymentInfo');
-    const method = el.value;
     const price = {{ book.price }};
 
-    // Dono mein Easypaisa likha hai kyunke receive Easypaisa par ho raha hai
-    if (method === 'JazzCash' || method === 'EasyPaisa') {
-        info.innerHTML = `<p><strong>Easypaisa Number:</strong> ${ACC_NUMBER}</p>
-        <p><strong>Account Title:</strong> ${ACC_TITLE}</p>
-        <p>Send <strong>Rs. ${price}</strong> to the above number, then enter the Transaction ID below.</p>`;
-    }
+    // Sirf Easypaisa
+    info.innerHTML = `<p><strong>Easypaisa Number:</strong> ${ACC_NUMBER}</p>
+    <p><strong>Account Title:</strong> ${ACC_TITLE}</p>
+    <p>Send <strong>Rs. ${price}</strong> to the above number, then enter the Transaction ID below.</p>`;
 }
 
 function validateForm() {
