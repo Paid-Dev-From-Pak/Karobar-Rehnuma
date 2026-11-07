@@ -9,7 +9,7 @@ import cloudinary
 import cloudinary.uploader
 
 app = Flask(__name__)
-app.secret_key = "change-this-to-random-secret-key-2024"
+app.secret_key = os.environ.get("SECRET_KEY", "change-this-to-random-secret-key-2024")
 
 # Line Break Filter (Description ke liye)
 @app.template_filter('nl2br')
@@ -27,23 +27,25 @@ cred = credentials.Certificate(FIREBASE_KEY_PATH)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# ---------- CLOUDINARY SETUP ----------
+# ---------- CLOUDINARY SETUP (SECURE) ----------
 cloudinary.config( 
-  cloud_name = "k2sh1ntb", 
-  api_key = "652535849565558", 
-  api_secret = "0Qw_xa5NkKdYGA2Vg9cFC8r2CQQ",
+  cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME", "k2sh1ntb"), 
+  api_key = os.environ.get("CLOUDINARY_API_KEY", "652535849565558"), 
+  api_secret = os.environ.get("CLOUDINARY_API_SECRET", "0Qw_xa5NkKdYGA2Vg9cFC8r2CQQ"),
   secure = True
 )
 
+# ---------- ADMIN & PAYMENT DETAILS (SECURE) ----------
+ADMIN_USER = os.environ.get("ADMIN_USER", "business10")
+ADMIN_PASS = os.environ.get("ADMIN_PASS", "krp10x")
+ADMIN_PASS_HASH = generate_password_hash(ADMIN_PASS)
+
+WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "923700157610")          
+ACCOUNT_TITLE = os.environ.get("ACCOUNT_TITLE", "SYED AFFAN SAEED")
+ACCOUNT_NUMBER_DISPLAY = os.environ.get("ACCOUNT_NUMBER", "0370-0157610")
+
 ALLOWED_EBOOK_EXT = {"pdf", "epub", "mobi"}
 ALLOWED_IMG_EXT = {"png", "jpg", "jpeg", "webp"}
-
-ADMIN_USER = "business10"
-ADMIN_PASS_HASH = generate_password_hash("krp10x")
-
-WHATSAPP_NUMBER = "923700157610"          
-ACCOUNT_TITLE = "SYED AFFAN SAEED"
-ACCOUNT_NUMBER_DISPLAY = "0370-0157610"
 
 def allowed_file(filename, allowed):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed
